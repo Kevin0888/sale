@@ -1,0 +1,20 @@
+# idea
+.DS_Store
+.idea/
+*.class
+target/
+bin/
+*.iml
+~$*.xlsx
+out/
+local/
+
+# eclipe
+.project
+.settings/
+.classpath
+
+# other
+Thumbs.db
+*.orig
+docs/apidoc/

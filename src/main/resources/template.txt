@@ -1,0 +1,277 @@
+package com.sale.controller;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletRequest;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+
+@Controller
+@RequestMapping("/sale")
+public class SaleController {
+
+    private String cashierPage = "/supermarket";
+    private String managerPage = "/manager";
+    private String commodityPage = "/commodity";
+    private String receiptPage = "/receipt";
+    private String loginPage = "/login";
+    private String errorPage = "/error";
+
+
+    @Autowired
+    private SaleService saleService;
+
+    @RequestMapping("/login")
+    public String login(HttpServletRequest request, CashierEntity cashier, ModelMap map) {
+        String role = request.getParameter("role");
+        String pagePath = "";
+
+        CashierEntity cashierEntity = saleService.getCashier(cashier);
+
+        if (cashierEntity != null) {
+            if ("1".equals(role)) {
+                pagePath = "forward:getVIPs";
+            } else if ("2".equals(role)) {
+                map.addAttribute("shoppingNum", saleService.getShoppingNum());
+                pagePath = cashierPage;
+            }
+        } else {
+            pagePath = errorPage;
+        }
+
+        return pagePath;
+    }
+
+    @RequestMapping("/back2cashier")
+    public String back2cashier(HttpServletRequest request, ModelMap map) {
+        String role = request.getParameter("role");
+        String pagePath = "";
+
+
+        if ("1".equals(role)) {
+            pagePath = "forward:getVIPs";
+        } else if ("2".equals(role)) {
+            map.addAttribute("shoppingNum", saleService.getShoppingNum());
+            pagePath = cashierPage;
+        }
+
+
+        return pagePath;
+    }
+
+    @RequestMapping("/tologin")
+    public String toLogin() {
+        return loginPage;
+    }
+
+    @RequestMapping("/addCommodity")
+    public String addCommodity(HttpServletRequest req, ModelMap map) {
+        String commodityID = req.getParameter("commodityID");
+        String count = req.getParameter("count");
+        String shoppingNumStr = req.getParameter("shoppingNum");
+        Double totalCost = 0.0;
+        int category = 0;
+        int shoppingNumber = 0;
+
+        if (shoppingNumStr != null && shoppingNumStr != "") {
+            shoppingNumber = Integer.parseInt(shoppingNumStr);
+            if (shoppingNumber == 0) {
+                shoppingNumber = saleService.getShoppingNum();
+            }
+        } else {
+            shoppingNumber = saleService.getShoppingNum();
+        }
+        CommodityEntity commodityEntity = saleService.getCommodity(Integer.parseInt(commodityID));
+        commodityEntity.setCount(Integer.parseInt(count));
+        commodityEntity.setTotalprice();
+
+        List<CommodityEntity> commodityList = saleService.addBoughtCommodity(shoppingNumber, commodityEntity);
+
+        for (CommodityEntity item : commodityList) {
+            item.setTotalprice();
+            totalCost += item.getTotalprice();
+        }
+        category = commodityList.size();
+
+        map.addAttribute("commodityList", commodityList);
+        map.addAttribute("totalCost", totalCost);
+        map.addAttribute("category", category);
+        map.addAttribute("shoppingNum", shoppingNumber);
+        return cashierPage;
+    }
+
+    @RequestMapping("/removeCommodity")
+    public String deleteCommodity(HttpServletRequest req, ModelMap map) {
+        String commodityID = req.getParameter("commodityID");
+        String shoppingNumStr = req.getParameter("shoppingNum");
+        Double totalCost = 0.0;
+
+        int category = 0;
+        int shoppingNumber = 0;
+
+        if (shoppingNumStr != null && shoppingNumStr != "") {
+            shoppingNumber = Integer.parseInt(shoppingNumStr);
+        }
+
+        CommodityEntity commodityEntity = saleService.getCommodity(Integer.parseInt(commodityID));
+
+        List<CommodityEntity> commodityList = saleService.removeBoughtCommodity(shoppingNumber, commodityEntity);
+
+        for (CommodityEntity item : commodityList) {
+            totalCost += item.getTotalprice() + totalCost;
+        }
+        category = commodityList.size();
+
+        map.addAttribute("commodityList", commodityList);
+        map.addAttribute("totalCost", totalCost);
+        map.addAttribute("category", category);
+        map.addAttribute("shoppingNum", shoppingNumber);
+        return cashierPage;
+    }
+
+    @RequestMapping("/checkoutByCash")
+    public String checkoutByCash(HttpServletRequest req, ModelMap map) {
+        String shoppingNumStr = req.getParameter("shoppingNum");
+        String cash_receive_str = req.getParameter("cash_receive");
+        String cash_balance_str = req.getParameter("cash_balance");
+        String total_cost_str = req.getParameter("total_cost");
+        String category = req.getParameter("category");
+
+        if (total_cost_str == null || total_cost_str == "") {
+            total_cost_str = "0";
+        }
+        if (cash_receive_str == null || cash_receive_str == "") {
+            cash_receive_str = "0";
+        }
+
+        if (cash_balance_str == null || cash_balance_str == "") {
+            cash_balance_str = "0";
+        }
+
+        int shoppingNumber = 0;
+
+        if (shoppingNumStr != null && shoppingNumStr != "") {
+            shoppingNumber = Integer.parseInt(shoppingNumStr);
+        }
+
+        VIPEntity vipEntity = new VIPEntity();
+
+        if (shoppingNumStr != null && shoppingNumStr != "") {
+            shoppingNumber = Integer.parseInt(shoppingNumStr);
+        }
+
+        vipEntity = saleService.getVIP(1);
+
+        double current_points_d = Double.parseDouble(total_cost_str);
+        int current_points_int = (int) current_points_d;
+        int points = vipEntity.getPoints();
+        points += current_points_int;
+
+        Date check_date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String check_date_str = simpleDateFormat.format(check_date);
+        List<CommodityEntity> commodityEntities = saleService.checkout(0, shoppingNumber);
+        map.addAttribute("commodityList", commodityEntities);
+        map.addAttribute("category", category);
+        map.addAttribute("total_cost", total_cost_str);
+        map.addAttribute("cash_receive", cash_receive_str);
+        map.addAttribute("cash_balance", cash_balance_str);
+        map.addAttribute("shoppingNum", shoppingNumber);
+        map.addAttribute("vip_id", 1);
+        map.addAttribute("vip_points", points);
+        map.addAttribute("vip_current_points", current_points_int);
+        map.addAttribute("checkout_type", 0);
+        map.addAttribute("check_date", check_date_str);
+
+        vipEntity.setPoints((int) points);
+        vipEntity.setUpdatatime(check_date);
+
+        saleService.updateVIP(vipEntity);
+        return receiptPage;
+    }
+
+    @RequestMapping("/checkoutByVIP")
+    public String checkoutByVIP(HttpServletRequest req, ModelMap map) {
+        String shoppingNumStr = req.getParameter("shoppingNum");
+        String cash_receive_str = req.getParameter("cash_receive");
+        String cash_balance_str = req.getParameter("cash_balance");
+        String total_cost_str = req.getParameter("total_cost");
+        String category = req.getParameter("category");
+        String vipID = req.getParameter("vipID");
+        int shoppingNumber = 0;
+
+        VIPEntity vipEntity = new VIPEntity();
+
+        if (shoppingNumStr != null && shoppingNumStr != "") {
+            shoppingNumber = Integer.parseInt(shoppingNumStr);
+        }
+
+        if (vipID != null && vipID != "") {
+            vipEntity = saleService.getVIP(Integer.parseInt(vipID));
+
+        } else {
+            vipEntity = saleService.getVIP(1);
+        }
+        double current_points_d = Double.parseDouble(total_cost_str);
+        int current_points_int = (int) current_points_d;
+        int points = vipEntity.getPoints();
+        points += current_points_int;
+
+        Date check_date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String check_date_str = simpleDateFormat.format(check_date);
+
+        double total = vipEntity.getTotal();
+        double current_cost = Double.parseDouble(total_cost_str);
+        total -= current_cost;
+        List<CommodityEntity> commodityEntities = saleService.checkout(1, shoppingNumber);
+        map.addAttribute("commodityList", commodityEntities);
+        map.addAttribute("category", category);
+        map.addAttribute("total_cost", total_cost_str);
+        map.addAttribute("cash_receive", cash_receive_str);
+        map.addAttribute("cash_balance", cash_balance_str);
+        map.addAttribute("shoppingNum", shoppingNumber);
+        map.addAttribute("vip_id", vipID);
+        map.addAttribute("vip_points", points);
+        map.addAttribute("vip_current_points", current_points_int);
+        map.addAttribute("checkout_type", 1);
+        map.addAttribute("check_date", check_date_str);
+
+        vipEntity.setPoints(points);
+        vipEntity.setUpdatatime(new Date());
+        vipEntity.setTotal(total);
+
+        saleService.updateVIP(vipEntity);
+        return receiptPage;
+    }
+
+    @RequestMapping("/getVIPs")
+    public String getVIPs(HttpServletRequest req, ModelMap map) {
+
+        List<VIPEntity> vips = saleService.getVIPs();
+        map.addAttribute("vipList", vips);
+        return managerPage;
+    }
+
+    @RequestMapping("/getCommodities")
+    public String getCommodities(HttpServletRequest req, ModelMap map) {
+
+        List<CommodityEntity> commodities = saleService.getCommodities();
+        map.addAttribute("commodities", commodities);
+        return commodityPage;
+    }
+
+    @ResponseBody
+    @RequestMapping("/getVIP")
+    public Object getVIP(Integer vipID) {
+
+        return saleService.getVIP(vipID);
+    }
+
+}
