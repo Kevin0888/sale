@@ -54,4 +54,7 @@ public class SupermarketService {
 
     }
 
+    public List<Member> getAllMembers() {
+       return superMarketDao.getMembers();
+    }
 }

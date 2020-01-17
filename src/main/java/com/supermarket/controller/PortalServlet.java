@@ -1,6 +1,8 @@
 package com.supermarket.controller;
 
+import com.alibaba.druid.util.StringUtils;
 import com.supermarket.bean.Commodity;
+import com.supermarket.bean.Member;
 import com.supermarket.bean.User;
 import com.supermarket.pojo.CommodityVO;
 import com.supermarket.pojo.IDUtil;
@@ -107,30 +109,64 @@ public class PortalServlet extends HttpServlet {
         }
     }
 
+    /**
+     * 登录
+     * @param req
+     * @param resp
+     * @throws ServletException
+     * @throws IOException
+     */
     private void login(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
-        String role = req.getParameter("role");
-        String username = req.getParameter("username");
-        String password = req.getParameter("password");
         String forwardPage = errorPage;
+
+        String username = req.getParameter("username");
+        if (StringUtils.isEmpty(username)){
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("message","username cannot be empty");
+            view.forward(req, resp);
+        }
+        String password = req.getParameter("password");
+        if (StringUtils.isEmpty(password)){
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("message","password cannot be empty");
+            view.forward(req, resp);
+        }
+        String role = req.getParameter("role");
+        if (StringUtils.isEmpty(role)){
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("message","role cannot be empty");
+            view.forward(req, resp);
+        }
         User user = supermarketService.getUser(username, password);
 
-        if (user != null) {
-            if ("1".equals(role)) {
-                forwardPage = managerPage;
-            } else if ("2".equals(role)) {
-                forwardPage = cashierPage;
-            }
+        if (user == null) {
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("message","The user is not exist");
+            view.forward(req, resp);
         }
+        if ( user.getRole() ==1 && user.getRole() == Integer.parseInt(role)) {
+            forwardPage = managerPage;
+            List<Member> list = supermarketService.getAllMembers();
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("members", list);
+            view.forward(req, resp);
+        } else if (user.getRole() ==2 && user.getRole() == Integer.parseInt(role)) {
+            forwardPage = cashierPage;
+            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+            req.setAttribute("shoppingNum", 0);
+            view.forward(req, resp);
+        }
+
         RequestDispatcher view = req.getRequestDispatcher(forwardPage);
-        req.setAttribute("shoppingNum", IDUtil.getId());
+//        req.setAttribute("shoppingNum", IDUtil.getId());
         view.forward(req, resp);
 
     }
 
-    private void addMember(HttpServletRequest req,HttpServletResponse resp) throws ServletException,IOException{
+    private void addMember(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
     }
+
     private void getMembers(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
     }
@@ -139,24 +175,41 @@ public class PortalServlet extends HttpServlet {
 
     }
 
+    /**
+     * 返回收银页面
+     * @param req
+     * @param resp
+     * @throws ServletException
+     * @throws IOException
+     */
     private void back2cashier(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String role = req.getParameter("role");
-        String forwardPage = "";
 
-
-        if ("1".equals(role)) {
-            forwardPage = "/supermarket/getMembers";
-            resp.sendRedirect(forwardPage);
-        } else if ("2".equals(role)) {
-            forwardPage = cashierPage;
-            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
-            req.setAttribute("shoppingNum", IDUtil.getId());
-            view.forward(req, resp);
-        }
+        req.setAttribute("shoppingNum", 0);
+        String forwardPage = cashierPage;
+        RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+        view.forward(req, resp);
+        //        req.setAttribute("shoppingNum", IDUtil.getId());
+//        String role = req.getParameter("role");
+//        if ("1".equals(role)) {
+//            forwardPage = "/supermarket/getMembers";
+//            resp.sendRedirect(forwardPage);
+//        } else if ("2".equals(role)) {
+//            forwardPage = cashierPage;
+//            RequestDispatcher view = req.getRequestDispatcher(forwardPage);
+//            req.setAttribute("shoppingNum", IDUtil.getId());
+//            view.forward(req, resp);
+//        }
 
 
     }
 
+    /**
+     * 添加购买商品
+     * @param req
+     * @param resp
+     * @throws ServletException
+     * @throws IOException
+     */
     private void addBoughtCommodity(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String commodityID = req.getParameter("commodityID");
         String count = req.getParameter("count");
