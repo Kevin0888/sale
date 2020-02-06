@@ -2,10 +2,9 @@ package com.supermarket.dao;
 
 import com.supermarket.pojo.JDBCUtil;
 import org.apache.commons.beanutils.BeanUtils;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+
+import java.lang.reflect.Field;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +14,46 @@ public class BaseDao {
     private PreparedStatement preparedStatement;
     private ResultSet resultSet;
 
+    /**
+     * 工具类：属性名转化。把数据库里有斜划线的列名转化成骆驼命名法的格式。
+     * @param columnName
+     * @return
+     */
+    private String getDbName(String columnName) {
+        char[] chars = columnName.toCharArray();
+        StringBuffer s = new StringBuffer();
+        for (int i = 0; i < chars.length; i++) {
+            if (chars[i] == '_') {
+                s.append(String.valueOf(chars[i + 1]).toUpperCase());
+                i++;
+            } else {
+                s.append(String.valueOf(chars[i]));
+            }
+        }
+        return s.toString();
+    }
+    /**
+     * 实体setter名称转对应数据库列的列名
+     * 		需要遵守命名规范，java（驼峰命名法），数据库（全小写，单词间用'_'隔开）
+     * @param name setter名称
+     * @return	数据库列名
+     */
+    private static String getDbName1(String name) {
+        //根据setter命名规则获取对应的属性名
+        name = name.substring(3,4).toLowerCase()+name.substring(4);
+        //获取数据库对应列名
+        StringBuffer buffer = new StringBuffer();
+        char[] nameChars = name.toCharArray();
+        for (char nameChar : nameChars) {
+            if (nameChar >= 'A' && nameChar <= 'Z') {
+                //将大写字母转换为下划线和对应的小写字母组合
+                buffer.append("_").append(String.valueOf(nameChar).toLowerCase());
+            } else {
+                buffer.append(String.valueOf(nameChar));
+            }
+        }
+        return buffer.toString();
+    }
 
     /**
      * 查询的通用方法
@@ -54,15 +93,25 @@ public class BaseDao {
                 // 7. 遍历每一行的每一列, 封装数据
                 for (int i = 0; i < columnCount; i++) {
                     // 获取每一列的列名称
-                    String columnName = rsmd.getColumnName(i + 1);
+                    String columnName = rsmd.getColumnName(i+1);
                     // 获取每一列的列名称, 对应的值
+                    try{
                     Object value = resultSet.getObject(columnName);
+
                     // 封装： 设置到t对象的属性中  【BeanUtils组件】
                     BeanUtils.copyProperty(t, columnName, value);
+                    }catch (SQLException e) {
+                    // 对象的属性都是私有的所以要想访问必须加上getDeclaredField(name)和
+//                    Field f = t.getClass().getDeclaredField(columnName);
+//                    f.setAccessible(true);
+//                    // 将结果集中的值赋给相应的对象实体的属性
+//                    f.set(t, resultSet.getObject(columnName));
+                        continue;
+                    }
                 }
 
                 // 把封装完毕的对象，添加到list集合中
-                list.add(t);
+                 list.add(t);
             }
 
             return list;
@@ -72,7 +121,6 @@ public class BaseDao {
             JDBCUtil.close(connection, preparedStatement, resultSet);
         }
     }
-
 
     /**
      * 更新的通用方法

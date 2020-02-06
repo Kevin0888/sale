@@ -10,6 +10,16 @@ public class Commodity implements Serializable {
     private String units;
     private double price;
     private int stock;
+    private int isDelete;
+    public int getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(int isDelete) {
+        this.isDelete = isDelete;
+    }
+
+
 
     public int getId() {
         return id;

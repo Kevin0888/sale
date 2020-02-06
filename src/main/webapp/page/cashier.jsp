@@ -7,6 +7,7 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="java.util.Date" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.Random" %>
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -87,7 +88,7 @@
     function showMember() {
         var memberID = $("#member_id_txt").val();
         $.ajax({
-            type: "get",
+            type: "POST",
             url: "getMember",
             data: {memberID: memberID},
             dataType: "json",
@@ -95,6 +96,10 @@
                 $("#member_balance_lbl").text(data.total);
                 $("#member_points_lbl").text(data.points);
                 $("#member_name_lbl").text(data.name);
+
+            },
+            error:function(data){
+                alert("error");
 
             }
         })
@@ -104,11 +109,17 @@
 </script>
 <body>
 <%
+    Random random = new Random();
+    //生成随机flag，
+    Integer   flag=new   Integer(random.nextInt());
+    session.setAttribute("flag",flag);
+%>
+<%
     String shoppingNum = request.getAttribute("shoppingNum").toString();
 
     List<Commodity> commodityList = (ArrayList) request.getAttribute("commodityList");
     Integer category = null == request.getAttribute("category") ? 0 : Integer.parseInt(request.getAttribute("category").toString());
-    Integer totalCost = null == request.getAttribute("totalCost") ? 0 : Integer.parseInt(request.getAttribute("totalCost").toString());
+    Double totalCost = null == request.getAttribute("totalCost") ? 0 : Double.parseDouble(request.getAttribute("totalCost").toString());
 %>
 
 <div align="center">
@@ -119,7 +130,7 @@
     登录时间 ：<label><fmt:formatDate value="<%=new Date() %>" pattern="yyyy-MM-dd HH:mm:ss"/></label>
     <hr>
 </div>
-<form action="" id="cashier_fm">
+<form action="" id="cashier_fm" method="post">
     <input type="hidden" id="shopping_num_txt" name="shoppingNum" value="<%= shoppingNum%>">
     <div>
         小票流水号 ： <%= shoppingNum%>  输入商品条码：<input type="text" id="commodity_id_txt" name="commodityID"> 数量：<input
@@ -146,15 +157,15 @@
         <tbody>
         <c:forEach items="<%=commodityList%>" var="item">
             <tr>
-                <td align="center">${item.commodityid}</td>
-                <td align="center">${item.commodityname}</td>
+                <td align="center">${item.commodityId}</td>
+                <td align="center">${item.commodityName}</td>
                 <td align="center">${item.specification}</td>
                 <td align="center">${item.units}</td>
                 <td align="center">${item.stock}</td>
                 <td align="center">${item.price}</td>
                 <td align="center">${item.price}</td>
                 <td align="center">${item.count}</td>
-                <td align="center">${item.totalprice}</td>
+                <td align="center">${item.total}</td>
             </tr>
         </c:forEach>
         </tbody>

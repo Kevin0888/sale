@@ -9,9 +9,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>receipt</title>
 </head>
+<script type="text/javascript" src="${pageContext.request.contextPath}/component/jquery-3.3.1.min.js"></script>
 <body style="text-align: center">
 <div align="left" >
-    <a href="/sale/back2cashier?role=2">返回</a>
+    <a href="/supermarket/back2cashier">返回</a>
 </div>
 <div align="center" style="width: 20%;margin:0 auto ;border: 1px solid #0f0f0f">
 
@@ -60,11 +61,11 @@
             <td align="left"><label>数量</label><label>${category} 件</label></td>
             <td align="right"><label>合计</label><label>${total_cost} 元</label></td>
         </tr>
-        <tr>
+        <tr <c:if test="${checkout_type == 1}"> hidden </c:if> </tr>
             <td align="left"><label>收款</label></td>
             <td align="right"><label>${cash_receive} 元</label></td>
         </tr>
-        <tr>
+        <tr <c:if test="${checkout_type == 1}"> hidden </c:if> </tr>
             <td align="left"><label>找零</label></td>
             <td align="right"><label>${cash_balance} 元</label></td>
         </tr>
